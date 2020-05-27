@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2019 ShareX Team
+    Copyright (c) 2007-2020 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -48,7 +48,10 @@ namespace ShareX
         public TaskSettingsForm(TaskSettings hotkeySetting, bool isDefault = false)
         {
             InitializeComponent();
-            Icon = ShareXResources.Icon;
+            ShareXResources.ApplyTheme(this);
+
+            tsmiURLShorteners.Image = ShareXResources.IsDarkTheme ? Resources.edit_scale_white : Resources.edit_scale;
+
             TaskSettings = hotkeySetting;
             IsDefault = isDefault;
 
@@ -62,13 +65,115 @@ namespace ShareX
             }
             else
             {
-                tbDescription.Text = TaskSettings.Description ?? "";
+                #region Task
+
+                AddEnumItemsContextMenu<HotkeyType>(x =>
+                {
+                    TaskSettings.Job = x;
+                    UpdateWindowTitle();
+                }, cmsTask);
+                SetEnumCheckedContextMenu(TaskSettings.Job, cmsTask);
+
+                tbDescription.Text = TaskSettings.Description;
+
                 cbOverrideAfterCaptureSettings.Checked = !TaskSettings.UseDefaultAfterCaptureJob;
                 btnAfterCapture.Enabled = !TaskSettings.UseDefaultAfterCaptureJob;
+                AddMultiEnumItemsContextMenu<AfterCaptureTasks>(x => TaskSettings.AfterCaptureJob = TaskSettings.AfterCaptureJob.Swap(x), cmsAfterCapture);
+                SetMultiEnumCheckedContextMenu(TaskSettings.AfterCaptureJob, cmsAfterCapture);
+
                 cbOverrideAfterUploadSettings.Checked = !TaskSettings.UseDefaultAfterUploadJob;
                 btnAfterUpload.Enabled = !TaskSettings.UseDefaultAfterUploadJob;
+                AddMultiEnumItemsContextMenu<AfterUploadTasks>(x => TaskSettings.AfterUploadJob = TaskSettings.AfterUploadJob.Swap(x), cmsAfterUpload);
+                SetMultiEnumCheckedContextMenu(TaskSettings.AfterUploadJob, cmsAfterUpload);
+
                 cbOverrideDestinationSettings.Checked = !TaskSettings.UseDefaultDestinations;
                 btnDestinations.Enabled = !TaskSettings.UseDefaultDestinations;
+                AddEnumItems<ImageDestination>(x =>
+                {
+                    TaskSettings.ImageDestination = x;
+
+                    if (x == ImageDestination.FileUploader)
+                    {
+                        SetEnumChecked(TaskSettings.ImageFileDestination, tsmiImageFileUploaders);
+                    }
+                    else
+                    {
+                        MainForm.Uncheck(tsmiImageFileUploaders);
+                    }
+                }, tsmiImageUploaders);
+                tsmiImageFileUploaders = (ToolStripDropDownItem)tsmiImageUploaders.DropDownItems[tsmiImageUploaders.DropDownItems.Count - 1];
+                AddEnumItems<FileDestination>(x =>
+                {
+                    TaskSettings.ImageFileDestination = x;
+                    tsmiImageFileUploaders.PerformClick();
+                }, tsmiImageFileUploaders);
+                SetEnumChecked(TaskSettings.ImageDestination, tsmiImageUploaders);
+                MainForm.SetImageFileDestinationChecked(TaskSettings.ImageDestination, TaskSettings.ImageFileDestination, tsmiImageFileUploaders);
+                AddEnumItems<TextDestination>(x =>
+                {
+                    TaskSettings.TextDestination = x;
+
+                    if (x == TextDestination.FileUploader)
+                    {
+                        SetEnumChecked(TaskSettings.TextFileDestination, tsmiTextFileUploaders);
+                    }
+                    else
+                    {
+                        MainForm.Uncheck(tsmiTextFileUploaders);
+                    }
+                }, tsmiTextUploaders);
+                tsmiTextFileUploaders = (ToolStripDropDownItem)tsmiTextUploaders.DropDownItems[tsmiTextUploaders.DropDownItems.Count - 1];
+                AddEnumItems<FileDestination>(x =>
+                {
+                    TaskSettings.TextFileDestination = x;
+                    tsmiTextFileUploaders.PerformClick();
+                }, tsmiTextFileUploaders);
+                SetEnumChecked(TaskSettings.TextDestination, tsmiTextUploaders);
+                MainForm.SetTextFileDestinationChecked(TaskSettings.TextDestination, TaskSettings.TextFileDestination, tsmiTextFileUploaders);
+                AddEnumItems<FileDestination>(x => TaskSettings.FileDestination = x, tsmiFileUploaders);
+                SetEnumChecked(TaskSettings.FileDestination, tsmiFileUploaders);
+                AddEnumItems<UrlShortenerType>(x => TaskSettings.URLShortenerDestination = x, tsmiURLShorteners);
+                SetEnumChecked(TaskSettings.URLShortenerDestination, tsmiURLShorteners);
+                AddEnumItems<URLSharingServices>(x => TaskSettings.URLSharingServiceDestination = x, tsmiURLSharingServices);
+                SetEnumChecked(TaskSettings.URLSharingServiceDestination, tsmiURLSharingServices);
+                UpdateDestinationStates();
+
+                if (Program.UploadersConfig != null)
+                {
+                    chkOverrideFTP.Enabled = cboFTPaccounts.Enabled = Program.UploadersConfig.FTPAccountList.Count > 0;
+
+                    if (Program.UploadersConfig.FTPAccountList.Count > 0)
+                    {
+                        chkOverrideFTP.Checked = TaskSettings.OverrideFTP;
+                        cboFTPaccounts.Enabled = TaskSettings.OverrideFTP;
+                        cboFTPaccounts.Items.Clear();
+                        cboFTPaccounts.Items.AddRange(Program.UploadersConfig.FTPAccountList.ToArray());
+                        cboFTPaccounts.SelectedIndex = TaskSettings.FTPIndex.BetweenOrDefault(0, Program.UploadersConfig.FTPAccountList.Count - 1);
+                    }
+
+                    chkOverrideCustomUploader.Enabled = cbOverrideCustomUploader.Enabled = Program.UploadersConfig.CustomUploadersList.Count > 0;
+
+                    if (Program.UploadersConfig.CustomUploadersList.Count > 0)
+                    {
+                        chkOverrideCustomUploader.Checked = TaskSettings.OverrideCustomUploader;
+                        cbOverrideCustomUploader.Enabled = TaskSettings.OverrideCustomUploader;
+                        cbOverrideCustomUploader.Items.Clear();
+                        cbOverrideCustomUploader.Items.AddRange(Program.UploadersConfig.CustomUploadersList.ToArray());
+                        cbOverrideCustomUploader.SelectedIndex = TaskSettings.CustomUploaderIndex.BetweenOrDefault(0, Program.UploadersConfig.CustomUploadersList.Count - 1);
+                    }
+                }
+
+                cbOverrideScreenshotsFolder.Checked = TaskSettings.OverrideScreenshotsFolder;
+                CodeMenu screenshotsFolderMenu = CodeMenu.Create<CodeMenuEntryFilename>(txtScreenshotsFolder, CodeMenuEntryFilename.t, CodeMenuEntryFilename.pn,
+                    CodeMenuEntryFilename.i, CodeMenuEntryFilename.width, CodeMenuEntryFilename.height, CodeMenuEntryFilename.n);
+                screenshotsFolderMenu.MenuLocationBottom = true;
+                txtScreenshotsFolder.Text = TaskSettings.ScreenshotsFolder;
+                txtScreenshotsFolder.Enabled = btnScreenshotsFolderBrowse.Enabled = TaskSettings.OverrideScreenshotsFolder;
+
+                UpdateTaskTabMenuNames();
+
+                #endregion Task
+
                 chkOverrideGeneralSettings.Checked = !TaskSettings.UseDefaultGeneralSettings;
                 chkOverrideImageSettings.Checked = !TaskSettings.UseDefaultImageSettings;
                 chkOverrideCaptureSettings.Checked = !TaskSettings.UseDefaultCaptureSettings;
@@ -81,98 +186,6 @@ namespace ShareX
             UpdateDefaultSettingVisibility();
 
             tttvMain.MainTabControl = tcTaskSettings;
-
-            #region Task
-
-            AddEnumItemsContextMenu<HotkeyType>(x =>
-            {
-                TaskSettings.Job = x;
-                UpdateWindowTitle();
-            }, cmsTask);
-            AddMultiEnumItemsContextMenu<AfterCaptureTasks>(x => TaskSettings.AfterCaptureJob = TaskSettings.AfterCaptureJob.Swap(x), cmsAfterCapture);
-            AddMultiEnumItemsContextMenu<AfterUploadTasks>(x => TaskSettings.AfterUploadJob = TaskSettings.AfterUploadJob.Swap(x), cmsAfterUpload);
-            AddEnumItems<ImageDestination>(x =>
-            {
-                TaskSettings.ImageDestination = x;
-
-                if (x == ImageDestination.FileUploader)
-                {
-                    SetEnumChecked(TaskSettings.ImageFileDestination, tsmiImageFileUploaders);
-                }
-                else
-                {
-                    MainForm.Uncheck(tsmiImageFileUploaders);
-                }
-            }, tsmiImageUploaders);
-            tsmiImageFileUploaders = (ToolStripDropDownItem)tsmiImageUploaders.DropDownItems[tsmiImageUploaders.DropDownItems.Count - 1];
-            AddEnumItems<FileDestination>(x =>
-            {
-                TaskSettings.ImageFileDestination = x;
-                tsmiImageFileUploaders.PerformClick();
-            }, tsmiImageFileUploaders);
-            AddEnumItems<TextDestination>(x =>
-            {
-                TaskSettings.TextDestination = x;
-
-                if (x == TextDestination.FileUploader)
-                {
-                    SetEnumChecked(TaskSettings.TextFileDestination, tsmiTextFileUploaders);
-                }
-                else
-                {
-                    MainForm.Uncheck(tsmiTextFileUploaders);
-                }
-            }, tsmiTextUploaders);
-            tsmiTextFileUploaders = (ToolStripDropDownItem)tsmiTextUploaders.DropDownItems[tsmiTextUploaders.DropDownItems.Count - 1];
-            AddEnumItems<FileDestination>(x =>
-            {
-                TaskSettings.TextFileDestination = x;
-                tsmiTextFileUploaders.PerformClick();
-            }, tsmiTextFileUploaders);
-            AddEnumItems<FileDestination>(x => TaskSettings.FileDestination = x, tsmiFileUploaders);
-            AddEnumItems<UrlShortenerType>(x => TaskSettings.URLShortenerDestination = x, tsmiURLShorteners);
-            AddEnumItems<URLSharingServices>(x => TaskSettings.URLSharingServiceDestination = x, tsmiURLSharingServices);
-
-            SetEnumCheckedContextMenu(TaskSettings.Job, cmsTask);
-            SetMultiEnumCheckedContextMenu(TaskSettings.AfterCaptureJob, cmsAfterCapture);
-            SetMultiEnumCheckedContextMenu(TaskSettings.AfterUploadJob, cmsAfterUpload);
-            SetEnumChecked(TaskSettings.ImageDestination, tsmiImageUploaders);
-            MainForm.SetImageFileDestinationChecked(TaskSettings.ImageDestination, TaskSettings.ImageFileDestination, tsmiImageFileUploaders);
-            SetEnumChecked(TaskSettings.TextDestination, tsmiTextUploaders);
-            MainForm.SetTextFileDestinationChecked(TaskSettings.TextDestination, TaskSettings.TextFileDestination, tsmiTextFileUploaders);
-            SetEnumChecked(TaskSettings.FileDestination, tsmiFileUploaders);
-            SetEnumChecked(TaskSettings.URLShortenerDestination, tsmiURLShorteners);
-            SetEnumChecked(TaskSettings.URLSharingServiceDestination, tsmiURLSharingServices);
-
-            if (Program.UploadersConfig != null)
-            {
-                chkOverrideFTP.Enabled = cboFTPaccounts.Enabled = Program.UploadersConfig.FTPAccountList.Count > 0;
-
-                if (Program.UploadersConfig.FTPAccountList.Count > 0)
-                {
-                    chkOverrideFTP.Checked = TaskSettings.OverrideFTP;
-                    cboFTPaccounts.Enabled = TaskSettings.OverrideFTP;
-                    cboFTPaccounts.Items.Clear();
-                    cboFTPaccounts.Items.AddRange(Program.UploadersConfig.FTPAccountList.ToArray());
-                    cboFTPaccounts.SelectedIndex = TaskSettings.FTPIndex.BetweenOrDefault(0, Program.UploadersConfig.FTPAccountList.Count - 1);
-                }
-
-                chkOverrideCustomUploader.Enabled = cbOverrideCustomUploader.Enabled = Program.UploadersConfig.CustomUploadersList.Count > 0;
-
-                if (Program.UploadersConfig.CustomUploadersList.Count > 0)
-                {
-                    chkOverrideCustomUploader.Checked = TaskSettings.OverrideCustomUploader;
-                    cbOverrideCustomUploader.Enabled = TaskSettings.OverrideCustomUploader;
-                    cbOverrideCustomUploader.Items.Clear();
-                    cbOverrideCustomUploader.Items.AddRange(Program.UploadersConfig.CustomUploadersList.ToArray());
-                    cbOverrideCustomUploader.SelectedIndex = TaskSettings.CustomUploaderIndex.BetweenOrDefault(0, Program.UploadersConfig.CustomUploadersList.Count - 1);
-                }
-            }
-
-            UpdateDestinationStates();
-            UpdateUploaderMenuNames();
-
-            #endregion Task
 
             #region General
 
@@ -289,10 +302,11 @@ namespace ShareX
             cbScreenRecorderFixedDuration.Checked = nudScreenRecorderDuration.Enabled = TaskSettings.CaptureSettings.ScreenRecordFixedDuration;
             nudScreenRecorderDuration.SetValue((decimal)TaskSettings.CaptureSettings.ScreenRecordDuration);
             chkScreenRecordAutoStart.Checked = nudScreenRecorderStartDelay.Enabled = TaskSettings.CaptureSettings.ScreenRecordAutoStart;
-            cbScreenRecordConfirmAbort.Checked = TaskSettings.CaptureSettings.ScreenRecordAskConfirmationOnAbort;
             nudScreenRecorderStartDelay.SetValue((decimal)TaskSettings.CaptureSettings.ScreenRecordStartDelay);
             cbScreenRecorderShowCursor.Checked = TaskSettings.CaptureSettings.ScreenRecordShowCursor;
             cbScreenRecordTwoPassEncoding.Checked = TaskSettings.CaptureSettings.ScreenRecordTwoPassEncoding;
+            cbScreenRecordTransparentRegion.Checked = TaskSettings.CaptureSettings.ScreenRecordTransparentRegion;
+            cbScreenRecordConfirmAbort.Checked = TaskSettings.CaptureSettings.ScreenRecordAskConfirmationOnAbort;
 
             #endregion Screen recorder
 
@@ -414,7 +428,7 @@ namespace ShareX
         {
             if (IsDefault && tabPage == tpUploadMain)
             {
-                tttvMain.SelectChild();
+                tttvMain.SelectChildNode();
             }
         }
 
@@ -435,10 +449,10 @@ namespace ShareX
             if (!IsDefault)
             {
                 pGeneral.Enabled = !TaskSettings.UseDefaultGeneralSettings;
-                pImage.Enabled = ((Control)tpEffects).Enabled = ((Control)tpThumbnail).Enabled = !TaskSettings.UseDefaultImageSettings;
-                pCapture.Enabled = ((Control)tpRegionCapture).Enabled = ((Control)tpScreenRecorder).Enabled = !TaskSettings.UseDefaultCaptureSettings;
+                pImage.Enabled = tpEffects.Enabled = tpThumbnail.Enabled = !TaskSettings.UseDefaultImageSettings;
+                pCapture.Enabled = tpRegionCapture.Enabled = tpScreenRecorder.Enabled = tpOCR.Enabled = !TaskSettings.UseDefaultCaptureSettings;
                 pActions.Enabled = !TaskSettings.UseDefaultActions;
-                ((Control)tpFileNaming).Enabled = ((Control)tpUploadClipboard).Enabled = !TaskSettings.UseDefaultUploadSettings;
+                tpFileNaming.Enabled = tpUploadClipboard.Enabled = tpUploaderFilters.Enabled = !TaskSettings.UseDefaultUploadSettings;
                 pTools.Enabled = !TaskSettings.UseDefaultToolsSettings;
                 pgTaskSettings.Enabled = !TaskSettings.UseDefaultAdvancedSettings;
             }
@@ -460,7 +474,7 @@ namespace ShareX
             }
         }
 
-        private void AddEnumItemsContextMenu<T>(Action<T> selectedEnum, params ToolStripDropDown[] parents)
+        private void AddEnumItemsContextMenu<T>(Action<T> selectedEnum, params ToolStripDropDown[] parents) where T : Enum
         {
             EnumInfo[] enums = Helpers.GetEnums<T>().OfType<Enum>().Select(x => new EnumInfo(x)).ToArray();
 
@@ -469,15 +483,16 @@ namespace ShareX
                 foreach (EnumInfo enumInfo in enums)
                 {
                     ToolStripMenuItem tsmi = new ToolStripMenuItem(enumInfo.Description.Replace("&", "&&"));
+                    tsmi.Image = TaskHelpers.FindMenuIcon(enumInfo.Value);
                     tsmi.Tag = enumInfo;
 
                     tsmi.Click += (sender, e) =>
                     {
                         SetEnumCheckedContextMenu(enumInfo, parents);
 
-                        selectedEnum((T)Enum.ToObject(typeof(T), enumInfo.Value));
+                        selectedEnum((T)enumInfo.Value);
 
-                        UpdateUploaderMenuNames();
+                        UpdateTaskTabMenuNames();
                     };
 
                     if (!string.IsNullOrEmpty(enumInfo.Category))
@@ -530,7 +545,7 @@ namespace ShareX
             }
         }
 
-        private void AddMultiEnumItemsContextMenu<T>(Action<T> selectedEnum, params ToolStripDropDown[] parents)
+        private void AddMultiEnumItemsContextMenu<T>(Action<T> selectedEnum, params ToolStripDropDown[] parents) where T : Enum
         {
             string[] enums = Helpers.GetLocalizedEnumDescriptions<T>().Skip(1).Select(x => x.Replace("&", "&&")).ToArray();
 
@@ -553,7 +568,7 @@ namespace ShareX
 
                         selectedEnum((T)Enum.ToObject(typeof(T), 1 << index));
 
-                        UpdateUploaderMenuNames();
+                        UpdateTaskTabMenuNames();
                     };
 
                     parent.Items.Add(tsmi);
@@ -598,7 +613,7 @@ namespace ShareX
 
                         selectedEnum((T)Enum.ToObject(typeof(T), index));
 
-                        UpdateUploaderMenuNames();
+                        UpdateTaskTabMenuNames();
                     };
 
                     parent.DropDownItems.Add(tsmi);
@@ -627,7 +642,7 @@ namespace ShareX
             }
         }
 
-        private void UpdateUploaderMenuNames()
+        private void UpdateTaskTabMenuNames()
         {
             btnTask.Text = string.Format(Resources.TaskSettingsForm_UpdateUploaderMenuNames_Task___0_, TaskSettings.Job.GetLocalizedDescription());
 
@@ -696,6 +711,23 @@ namespace ShareX
         private void cbOverrideCustomUploader_SelectedIndexChanged(object sender, EventArgs e)
         {
             TaskSettings.CustomUploaderIndex = cbOverrideCustomUploader.SelectedIndex;
+        }
+
+        private void cbOverrideScreenshotsFolder_CheckedChanged(object sender, EventArgs e)
+        {
+            TaskSettings.OverrideScreenshotsFolder = cbOverrideScreenshotsFolder.Checked;
+            txtScreenshotsFolder.Enabled = btnScreenshotsFolderBrowse.Enabled = TaskSettings.OverrideScreenshotsFolder;
+        }
+
+        private void txtScreenshotsFolder_TextChanged(object sender, EventArgs e)
+        {
+            TaskSettings.ScreenshotsFolder = txtScreenshotsFolder.Text;
+        }
+
+        private void btnScreenshotsFolderBrowse_Click(object sender, EventArgs e)
+        {
+            Helpers.BrowseFolder(Resources.ApplicationSettingsForm_btnBrowseCustomScreenshotsPath_Click_Choose_screenshots_folder_path,
+                txtScreenshotsFolder, TaskSettings.ScreenshotsFolder, true);
         }
 
         #endregion Task
@@ -781,7 +813,7 @@ namespace ShareX
 
         private void btnImageEffects_Click(object sender, EventArgs e)
         {
-            using (ImageEffectsForm imageEffectsForm = new ImageEffectsForm(ShareXResources.LogoBlack, TaskSettings.ImageSettings.ImageEffectPresets,
+            using (ImageEffectsForm imageEffectsForm = new ImageEffectsForm(null, TaskSettings.ImageSettings.ImageEffectPresets,
                 TaskSettings.ImageSettings.SelectedImageEffectPreset))
             {
                 imageEffectsForm.ShowDialog();
@@ -1057,6 +1089,8 @@ namespace ShareX
             {
                 form.DefaultToolsFolder = Program.ToolsFolder;
                 form.ShowDialog();
+
+                TaskSettings.CaptureSettings.FFmpegOptions = form.Options.FFmpeg;
             }
         }
 
@@ -1100,6 +1134,11 @@ namespace ShareX
         private void cbScreenRecordTwoPassEncoding_CheckedChanged(object sender, EventArgs e)
         {
             TaskSettings.CaptureSettings.ScreenRecordTwoPassEncoding = cbScreenRecordTwoPassEncoding.Checked;
+        }
+
+        private void cbScreenRecordTransparentRegion_CheckedChanged(object sender, EventArgs e)
+        {
+            TaskSettings.CaptureSettings.ScreenRecordTransparentRegion = cbScreenRecordTransparentRegion.Checked;
         }
 
         private void cbScreenRecordConfirmAbort_CheckedChanged(object sender, EventArgs e)

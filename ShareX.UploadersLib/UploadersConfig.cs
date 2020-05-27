@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2019 ShareX Team
+    Copyright (c) 2007-2020 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -56,15 +56,6 @@ namespace ShareX.UploadersLib
 
         #endregion ImageShack
 
-        #region TinyPic
-
-        public AccountType TinyPicAccountType = AccountType.Anonymous;
-        public string TinyPicRegistrationCode = "";
-        public string TinyPicUsername = "";
-        public string TinyPicPassword = "";
-
-        #endregion TinyPic
-
         #region Flickr
 
         public OAuthInfo FlickrOAuthInfo = null;
@@ -82,6 +73,7 @@ namespace ShareX.UploadersLib
         #region Google Photos
 
         public OAuth2Info GooglePhotosOAuth2Info = null;
+        public OAuthUserInfo GooglePhotosUserInfo = null;
         public string GooglePhotosAlbumID = "";
         public bool GooglePhotosIsPublic = false;
 
@@ -89,7 +81,7 @@ namespace ShareX.UploadersLib
 
         #region Chevereto
 
-        public CheveretoUploader CheveretoUploader = new CheveretoUploader("http://ultraimg.com/api/1/upload", "3374fa58c672fcaad8dab979f7687397");
+        public CheveretoUploader CheveretoUploader = new CheveretoUploader();
         public bool CheveretoDirectURL = true;
 
         #endregion Chevereto
@@ -225,6 +217,7 @@ namespace ShareX.UploadersLib
         public OAuth2Info BoxOAuth2Info = null;
         public BoxFileEntry BoxSelectedFolder = Box.RootFolder;
         public bool BoxShare = true;
+        public BoxShareAccessLevel BoxShareAccessLevel = BoxShareAccessLevel.Open;
 
         #endregion Box
 
@@ -348,7 +341,7 @@ namespace ShareX.UploadersLib
 
         #region Pomf
 
-        public PomfUploader PomfUploader = new PomfUploader("https://mixtape.moe/upload.php");
+        public PomfUploader PomfUploader = new PomfUploader();
 
         #endregion Pomf
 
@@ -367,6 +360,7 @@ namespace ShareX.UploadersLib
         public bool SeafileIsLibraryEncrypted = false;
         public string SeafileEncryptedLibraryPassword = "";
         public bool SeafileCreateShareableURL = true;
+        public bool SeafileCreateShareableURLRaw = false;
         public bool SeafileIgnoreInvalidCert = false;
         public int SeafileShareDaysToExpire = 0;
         public string SeafileSharePassword = "";
@@ -400,9 +394,9 @@ namespace ShareX.UploadersLib
         public string B2ApplicationKeyId = "";
         public string B2ApplicationKey = "";
         public string B2BucketName = "";
-        public string B2UploadPath = "ShareX/%y/%mo/";
+        public string B2UploadPath = "ShareX/%y/%mo";
         public bool B2UseCustomUrl = false;
-        public string B2CustomUrl = "https://example.com/";
+        public string B2CustomUrl = "https://example.com";
 
         #endregion Backblaze B2
 
@@ -429,6 +423,7 @@ namespace ShareX.UploadersLib
         public bool GoogleCloudStorageRemoveExtensionImage = false;
         public bool GoogleCloudStorageRemoveExtensionVideo = false;
         public bool GoogleCloudStorageRemoveExtensionText = false;
+        public bool GoogleCloudStorageSetPublicACL = true;
 
         #endregion Google Cloud Storage
 

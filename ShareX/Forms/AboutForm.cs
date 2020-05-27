@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2019 ShareX Team
+    Copyright (c) 2007-2020 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -37,12 +37,14 @@ namespace ShareX
         public AboutForm()
         {
             InitializeComponent();
-            Icon = ShareXResources.Icon;
+
             lblProductName.Text = Program.Title;
             pbLogo.Image = ShareXResources.Logo;
 
             rtbShareXInfo.AddContextMenu();
             rtbCredits.AddContextMenu();
+
+            ShareXResources.ApplyTheme(this);
 
 #if STEAM || WindowsStore
             uclUpdate.Visible = false;
@@ -73,7 +75,7 @@ namespace ShareX
             lblMike.Text = "McoreD (Michael Delpach)";
 
             rtbShareXInfo.Text = $@"{Resources.AboutForm_AboutForm_Website}: {Links.URL_WEBSITE}
-{Resources.AboutForm_AboutForm_Project_page}: {Links.URL_PROJECT}
+{Resources.AboutForm_AboutForm_Project_page}: {Links.URL_GITHUB}
 {Resources.AboutForm_AboutForm_Changelog}: {Links.URL_CHANGELOG}";
 
             rtbCredits.Text = $@"{Resources.AboutForm_AboutForm_Contributors}:
@@ -98,6 +100,7 @@ https://github.com/ShareX/ShareX/graphs/contributors
 {Resources.AboutForm_AboutForm_Language_uk}: https://github.com/6c6c6
 {Resources.AboutForm_AboutForm_Language_id_ID}: https://github.com/Nicedward
 {Resources.AboutForm_AboutForm_Language_es_MX}: https://github.com/absay
+{Resources.AboutForm_AboutForm_Language_pt_PT}: https://github.com/FarewellAngelina
 
 {Resources.AboutForm_AboutForm_External_libraries}:
 
@@ -115,7 +118,7 @@ ZXing.Net: https://github.com/micjahn/ZXing.Net
 MegaApiClient: https://github.com/gpailler/MegaApiClient
 Blob Emoji: http://blobs.gg
 
-Copyright (c) 2007-2019 ShareX Team";
+Copyright (c) 2007-2020 ShareX Team";
 
             easterEgg = new EasterEggAboutAnimation(cLogo, this);
         }
@@ -138,12 +141,12 @@ Copyright (c) 2007-2019 ShareX Team";
 
         private void pbBerkURL_Click(object sender, EventArgs e)
         {
-            URLHelpers.OpenURL(Links.URL_BERK);
+            URLHelpers.OpenURL(Links.URL_JAEX);
         }
 
         private void pbMikeURL_Click(object sender, EventArgs e)
         {
-            URLHelpers.OpenURL(Links.URL_MIKE);
+            URLHelpers.OpenURL(Links.URL_MCORED);
         }
 
         private void rtb_LinkClicked(object sender, LinkClickedEventArgs e)

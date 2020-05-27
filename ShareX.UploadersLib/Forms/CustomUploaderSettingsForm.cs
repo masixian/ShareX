@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2019 ShareX Team
+    Copyright (c) 2007-2020 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -59,7 +59,6 @@ namespace ShareX.UploadersLib
             Config = config;
 
             InitializeComponent();
-            Icon = ShareXResources.Icon;
 
             /*
             CodeMenuItem[] inputCodeMenuItems = new CodeMenuItem[]
@@ -88,9 +87,9 @@ namespace ShareX.UploadersLib
                 new CodeMenuItem("$base64:input$", "Base64 encode input")
             };
 
-            CodeMenu.Create(rtbResultURL, outputCodeMenuItems);
-            CodeMenu.Create(rtbResultThumbnailURL, outputCodeMenuItems);
-            CodeMenu.Create(rtbResultDeletionURL, outputCodeMenuItems);
+            new CodeMenu(rtbResultURL, outputCodeMenuItems);
+            new CodeMenu(rtbResultThumbnailURL, outputCodeMenuItems);
+            new CodeMenu(rtbResultDeletionURL, outputCodeMenuItems);
 
             rtbRequestURL.AddContextMenu();
             rtbData.AddContextMenu();
@@ -104,6 +103,8 @@ namespace ShareX.UploadersLib
             CustomUploaderAddDestinationTypes();
             cbRequestMethod.Items.AddRange(Enum.GetNames(typeof(HttpMethod)));
             cbBody.Items.AddRange(Helpers.GetEnumDescriptions<CustomUploaderBody>());
+
+            ShareXResources.ApplyTheme(this);
 
             CustomUploaderLoadTab();
         }
@@ -480,8 +481,7 @@ namespace ShareX.UploadersLib
 
                     if (isDuplicate)
                     {
-                        // TODO: Translate
-                        cell.ErrorText = "Duplicate name not allowed.";
+                        cell.ErrorText = Resources.DuplicateNameNotAllowed;
                     }
                     else
                     {
@@ -615,11 +615,11 @@ namespace ShareX.UploadersLib
                     cbURLSharingService.Items.Add(item);
                 }
 
-                cbImageUploader.SelectedIndex = Config.CustomImageUploaderSelected.Between(0, Config.CustomUploadersList.Count - 1);
-                cbTextUploader.SelectedIndex = Config.CustomTextUploaderSelected.Between(0, Config.CustomUploadersList.Count - 1);
-                cbFileUploader.SelectedIndex = Config.CustomFileUploaderSelected.Between(0, Config.CustomUploadersList.Count - 1);
-                cbURLShortener.SelectedIndex = Config.CustomURLShortenerSelected.Between(0, Config.CustomUploadersList.Count - 1);
-                cbURLSharingService.SelectedIndex = Config.CustomURLSharingServiceSelected.Between(0, Config.CustomUploadersList.Count - 1);
+                cbImageUploader.SelectedIndex = Config.CustomImageUploaderSelected.Clamp(0, Config.CustomUploadersList.Count - 1);
+                cbTextUploader.SelectedIndex = Config.CustomTextUploaderSelected.Clamp(0, Config.CustomUploadersList.Count - 1);
+                cbFileUploader.SelectedIndex = Config.CustomFileUploaderSelected.Clamp(0, Config.CustomUploadersList.Count - 1);
+                cbURLShortener.SelectedIndex = Config.CustomURLShortenerSelected.Clamp(0, Config.CustomUploadersList.Count - 1);
+                cbURLSharingService.SelectedIndex = Config.CustomURLSharingServiceSelected.Clamp(0, Config.CustomUploadersList.Count - 1);
             }
         }
 
@@ -769,32 +769,32 @@ namespace ShareX.UploadersLib
         {
             rtbResponseInfo.ResetText();
 
-            rtbResponseInfo.SelectionFont = new Font(rtbResponseInfo.Font, FontStyle.Bold);
+            rtbResponseInfo.SetFontBold();
             rtbResponseInfo.AppendText("Status code:\r\n");
-            rtbResponseInfo.SelectionFont = new Font(rtbResponseInfo.Font, FontStyle.Regular);
+            rtbResponseInfo.SetFontRegular();
             rtbResponseInfo.AppendText($"({(int)responseInfo.StatusCode}) {responseInfo.StatusDescription}");
 
             if (!string.IsNullOrEmpty(responseInfo.ResponseURL))
             {
-                rtbResponseInfo.SelectionFont = new Font(rtbResponseInfo.Font, FontStyle.Bold);
+                rtbResponseInfo.SetFontBold();
                 rtbResponseInfo.AppendText("\r\n\r\nResponse URL:\r\n");
-                rtbResponseInfo.SelectionFont = new Font(rtbResponseInfo.Font, FontStyle.Regular);
+                rtbResponseInfo.SetFontRegular();
                 rtbResponseInfo.AppendText(responseInfo.ResponseURL);
             }
 
             if (responseInfo.Headers != null && responseInfo.Headers.Count > 0)
             {
-                rtbResponseInfo.SelectionFont = new Font(rtbResponseInfo.Font, FontStyle.Bold);
+                rtbResponseInfo.SetFontBold();
                 rtbResponseInfo.AppendText("\r\n\r\nHeaders:\r\n");
-                rtbResponseInfo.SelectionFont = new Font(rtbResponseInfo.Font, FontStyle.Regular);
+                rtbResponseInfo.SetFontRegular();
                 rtbResponseInfo.AppendText(responseInfo.Headers.ToString().TrimEnd('\r', '\n'));
             }
 
             if (includeResponseText && !string.IsNullOrEmpty(responseInfo.ResponseText))
             {
-                rtbResponseInfo.SelectionFont = new Font(rtbResponseInfo.Font, FontStyle.Bold);
+                rtbResponseInfo.SetFontBold();
                 rtbResponseInfo.AppendText("\r\n\r\nResponse text:\r\n");
-                rtbResponseInfo.SelectionFont = new Font(rtbResponseInfo.Font, FontStyle.Regular);
+                rtbResponseInfo.SetFontRegular();
                 rtbResponseInfo.AppendText(responseInfo.ResponseText);
             }
         }

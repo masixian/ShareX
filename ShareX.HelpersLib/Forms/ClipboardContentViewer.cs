@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2019 ShareX Team
+    Copyright (c) 2007-2020 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -26,7 +26,6 @@
 using ShareX.HelpersLib.Properties;
 using System;
 using System.Drawing;
-using System.Linq;
 using System.Windows.Forms;
 
 namespace ShareX.HelpersLib
@@ -41,7 +40,12 @@ namespace ShareX.HelpersLib
         public ClipboardContentViewer(bool showCheckBox = false)
         {
             InitializeComponent();
-            Icon = ShareXResources.Icon;
+            ShareXResources.ApplyTheme(this);
+
+            if (ShareXResources.UseCustomTheme)
+            {
+                lblQuestion.BackColor = ShareXResources.Theme.BorderColor;
+            }
 
             cbDontShowThisWindow.Visible = showCheckBox;
         }
@@ -57,22 +61,22 @@ namespace ShareX.HelpersLib
 
             if (Clipboard.ContainsImage())
             {
-                using (Image img = ClipboardHelpers.GetImage())
+                using (Bitmap bmp = ClipboardHelpers.GetImage())
                 {
-                    if (img != null)
+                    if (bmp != null)
                     {
                         ClipboardContentType = EClipboardContentType.Image;
-                        ClipboardContent = img.Clone();
-                        pbClipboard.LoadImage(img);
+                        ClipboardContent = bmp.Clone();
+                        pbClipboard.LoadImage(bmp);
                         pbClipboard.Visible = true;
-                        lblQuestion.Text = string.Format(Resources.ClipboardContentViewer_ClipboardContentViewer_Load_Clipboard_content__Image__Size___0_x_1__, img.Width, img.Height);
+                        lblQuestion.Text = string.Format(Resources.ClipboardContentViewer_ClipboardContentViewer_Load_Clipboard_content__Image__Size___0_x_1__, bmp.Width, bmp.Height);
                         return true;
                     }
                 }
             }
             else if (Clipboard.ContainsText())
             {
-                string text = Clipboard.GetText();
+                string text = ClipboardHelpers.GetText();
 
                 if (!string.IsNullOrEmpty(text))
                 {
@@ -86,9 +90,9 @@ namespace ShareX.HelpersLib
             }
             else if (Clipboard.ContainsFileDropList())
             {
-                string[] files = Clipboard.GetFileDropList().OfType<string>().ToArray();
-
-                if (files.Length > 0)
+                string[] files = ClipboardHelpers.GetFileDropList();
+                
+                if (files != null && files.Length > 0)
                 {
                     ClipboardContentType = EClipboardContentType.Files;
                     ClipboardContent = files;

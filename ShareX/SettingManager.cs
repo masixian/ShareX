@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2019 ShareX Team
+    Copyright (c) 2007-2020 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -24,12 +24,14 @@
 #endregion License Information (GPL v3)
 
 using ShareX.HelpersLib;
+using ShareX.HistoryLib;
 using ShareX.ScreenCaptureLib;
 using ShareX.UploadersLib;
 using ShareX.UploadersLib.FileUploaders;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -106,6 +108,9 @@ namespace ShareX
         private static ManualResetEvent uploadersConfigResetEvent = new ManualResetEvent(false);
         private static ManualResetEvent hotkeysConfigResetEvent = new ManualResetEvent(false);
 
+        private const int SettingsSaveFailWarningLimit = 3;
+        private static int settingsSaveFailWarningCount;
+
         public static void LoadInitialSettings()
         {
             LoadApplicationConfig();
@@ -139,8 +144,35 @@ namespace ShareX
         public static void LoadApplicationConfig()
         {
             Settings = ApplicationConfig.Load(ApplicationConfigFilePath, BackupFolder, true, true);
-            ApplicationConfigBackwardCompatibilityTasks();
+            Settings.SettingsSaveFailed += Settings_SettingsSaveFailed;
             DefaultTaskSettings = Settings.DefaultTaskSettings;
+            ApplicationConfigBackwardCompatibilityTasks();
+            MigrateHistoryFile();
+        }
+
+        private static void Settings_SettingsSaveFailed(Exception e)
+        {
+            if (settingsSaveFailWarningCount == SettingsSaveFailWarningLimit) return;
+
+            string message;
+
+            if (e is UnauthorizedAccessException || e is FileNotFoundException)
+            {
+                message = "Your anti-virus software or the controlled folder access feature in Windows 10 could be blocking ShareX.";
+            }
+            else
+            {
+                message = e.Message;
+            }
+
+            BalloonTipAction action = new BalloonTipAction()
+            {
+                ClickAction = BalloonTipClickAction.OpenDebugLog
+            };
+
+            TaskHelpers.ShowBalloonTip(message, ToolTipIcon.Warning, 5000, "ShareX failed to save settings", action);
+
+            settingsSaveFailWarningCount++;
         }
 
         public static void LoadUploadersConfig()
@@ -152,6 +184,7 @@ namespace ShareX
         public static void LoadHotkeysConfig()
         {
             HotkeysConfig = HotkeysConfig.Load(HotkeysConfigFilePath, BackupFolder, true, true);
+            HotkeysConfigBackwardCompatibilityTasks();
         }
 
         public static void LoadAllSettings()
@@ -177,6 +210,33 @@ namespace ShareX
                 {
                     IntegrationHelpers.CreateChromeExtensionSupport(true);
                 }
+            }
+
+            if (Settings.IsUpgradeFrom("13.0.2"))
+            {
+                Settings.UseCustomTheme = Settings.UseDarkTheme;
+            }
+        }
+
+        private static void MigrateHistoryFile()
+        {
+            if (File.Exists(Program.HistoryFilePathOld))
+            {
+                if (!File.Exists(Program.HistoryFilePath))
+                {
+                    DebugHelper.WriteLine($"Migrating XML history file \"{Program.HistoryFilePathOld}\" to JSON history file \"{Program.HistoryFilePath}\"");
+
+                    HistoryManagerXML historyManagerXML = new HistoryManagerXML(Program.HistoryFilePathOld);
+                    List<HistoryItem> historyItems = historyManagerXML.GetHistoryItems();
+
+                    if (historyItems.Count > 0)
+                    {
+                        HistoryManagerJSON historyManagerJSON = new HistoryManagerJSON(Program.HistoryFilePath);
+                        historyManagerJSON.AppendHistoryItems(historyItems);
+                    }
+                }
+
+                Helpers.MoveFile(Program.HistoryFilePathOld, BackupFolder);
             }
         }
 
@@ -216,6 +276,22 @@ namespace ShareX
                 foreach (CustomUploaderItem cui in UploadersConfig.CustomUploadersList)
                 {
                     cui.CheckBackwardCompatibility();
+                }
+            }
+        }
+
+        private static void HotkeysConfigBackwardCompatibilityTasks()
+        {
+            if (HotkeysConfig.IsUpgradeFrom("13.1.1"))
+            {
+                foreach (TaskSettings taskSettings in HotkeysConfig.Hotkeys.Select(x => x.TaskSettings))
+                {
+                    if (taskSettings != null && !string.IsNullOrEmpty(taskSettings.AdvancedSettings.CapturePath))
+                    {
+                        taskSettings.OverrideScreenshotsFolder = true;
+                        taskSettings.ScreenshotsFolder = taskSettings.AdvancedSettings.CapturePath;
+                        taskSettings.AdvancedSettings.CapturePath = "";
+                    }
                 }
             }
         }
@@ -261,15 +337,23 @@ namespace ShareX
             LoadHotkeysConfig();
         }
 
-        public static bool Export(string archivePath)
+        public static bool Export(string archivePath, bool settings, bool history)
         {
             try
             {
                 List<string> files = new List<string>();
-                files.Add(ApplicationConfigFilename);
-                files.Add(HotkeysConfigFilename);
-                files.Add(UploadersConfigFilename);
-                files.Add(Program.HistoryFilename);
+
+                if (settings)
+                {
+                    files.Add(ApplicationConfigFilename);
+                    files.Add(HotkeysConfigFilename);
+                    files.Add(UploadersConfigFilename);
+                }
+
+                if (history)
+                {
+                    files.Add(Program.HistoryFilename);
+                }
 
                 ZipManager.Compress(archivePath, files, Program.PersonalFolder);
                 return true;
